@@ -1,11 +1,20 @@
 import pandas as pd
 import numpy as np
+import wfdb
+import pickle
 
-df = pd.read_csv('data/training2017/REFERENCE.csv', header=None, names = ['name','label'])
+dirName = 'data/training2017/'
+df = pd.read_csv(dirName + 'REFERENCE.csv', header=None, names = ['name','label'])
 df = df[df.label != 'O']
 test = df.sample(frac=.2)
 trainIdx = list(set(df.index) - set(test.index))
 train = df.loc[trainIdx]
+
+sigs, ys = consolidateData(train, dirName)
+np.save(dirName + 'train', sigs)
+np.save(dirName + 'trainlabel', ys)
+
+
 
 def chunk(signal, y, chunkSize=4096):
     '''
@@ -35,3 +44,22 @@ def chunk(signal, y, chunkSize=4096):
     y=[y]*reps
 
     return signal, y
+
+def consolidateData(df, dirName, chunkSize=4096):
+    '''
+    turn dataset into single file, with signals chunked into size chunkSize
+    Input: df: dataframe with cols 'name' and 'label'; name is name of file
+        dirName: dir where file can be found
+        chunkSize: int>0
+    Output: 2D numpy array of chunked signals and their labels
+    '''
+    sigOut=[]
+    yOut=[]
+    for _, row in df.iterrows():
+        fname = dirName + row['name']
+        sig, _ = wfdb.rdsamp(fname)
+        sig=sig.reshape(-1)
+        sigs, ys = chunk(sig, row.label, chunkSize)
+        sigOut.extend(sigs)
+        yOut.extend(ys)
+    return np.vstack(sigOut), yOut

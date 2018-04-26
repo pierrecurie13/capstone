@@ -8,3 +8,6 @@
 *.dat
 *.hea
 *.xws
+*.p
+*.npy
+data
