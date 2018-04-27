@@ -1,41 +1,79 @@
 import numpy as np
 import pandas as pd
-import pickle
-import dill
-from sklearn.model_selection import GridSearchCV, KFold
+from sklearn.model_selection import KFold
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import roc_auc_score, roc_curve, make_scorer
 from sklearn.externals.joblib import parallel_backend
 import matplotlib.pyplot as plt
 
 dirName = 'data/training2017/'
-x = np.load(dirName + 'trainFeat.npy')
-y = np.load(dirName + 'trainlabel.npy')
+xTrain = np.load(dirName + 'trainFeat.npy')
+yTrain = np.load(dirName + 'trainlabel.npy')
+yTrain=yTrain[:,1]
+xVal = np.load(dirName + 'validFeat.npy')
+yVal = np.load(dirName + 'validlabel.npy')
+yVal=yVal[:,1]
 
 def score_func(y, y_pred, **kwargs):
     mask = y!='~'
     y=y[mask]
     y_pred=y_pred[mask]
-    print(y_pred.min(axis=0))
     y_pred=y_pred[:,0]/(y_pred[:,0]+y_pred[:,1])
     mask = np.isnan(y_pred)
     y_pred[mask]=.5
     mask = y=='A'
     y = np.zeros(len(y))
     y[mask]=1
-
     return roc_auc_score(y, y_pred)
 
 scorer = make_scorer(score_func, needs_proba=True)
 
-def search(x,y,params,cv=5):
+# def findNum(x,y,params, cv=3, seed=646719267):
+#     '''
+#     params is dict
+#     '''
+#     kf = KFold(n_splits=cv, shuffle=True, random_state=seed)
+#     aucs=np.zeros([cv,params['n_estimators']])
+#     row=0
+#     for trainIdx, testIdx in kf.split(range(len(x))):
+#         gb = GradientBoostingClassifier(**params)
+#         gb.fit(x[trainIdx], y[trainIdx])
+#         aucLst=[]
+#         for preds in gb.staged_predict_proba(x[testIdx]):
+#             aucLst.append(score_func(y[testIdx], preds))
+#         aucs[row]=aucLst
+#         row+=1
+#     aucLst = aucs.mean(axis=0)
+#     return np.argmax(aucLst), aucLst
 
-    clf = GridSearchCV(GradientBoostingClassifier(), params, scorer,
-                                n_jobs=3, cv=cv, verbose=1)
-    print("Starting grid search - coarse (will take several minutes)")
-    with parallel_backend('threading'):
-        clf.fit(x,y)
-    return pd.DataFrame(clf.cv_results_)
+def findNum2(xTrain,yTrain,xTest,yTest,params={}):
+    '''
+    params is dict
+    '''
+    gb = GradientBoostingClassifier(**params)
+    gb.fit(xTrain, yTrain)
+    aucLst=[]
+    for preds in gb.staged_predict_proba(xTest):
+        aucLst.append(score_func(yTest, preds))
+    return np.argmax(aucLst), aucLst
+
+def plotFindNum(aucLst, params='title'):
+    plt.scatter(range(len(aucLst)), aucLst, marker='.')
+    plt.scatter(np.argmax(aucLst), max(aucLst), marker='o', c='red')
+    plt.xlabel('number of trees')
+    plt.ylabel('mean AUC')
+    plt.title(params)
+    plt.show()
+    
+
+# def search(x,y,params,cv=5):
+
+#     clf = GridSearchCV(GradientBoostingClassifier(), params, scorer,
+#                                 n_jobs=3, cv=cv, verbose=1)
+#     print("Starting grid search - coarse (will take several minutes)")
+#     with parallel_backend('threading'):
+#         clf.fit(x,y)
+#     return pd.DataFrame(clf.cv_results_)
 
 ''' gets a rough idea where the best parameters lie '''
 boosting_grid_rough = {'learning_rate': np.logspace(-3, 0, num = 4),
@@ -76,29 +114,7 @@ df.sort_values(by='mean_test_score').tail(10)
 
 ####################
 #final tuning
-def findNum(x,y,params, cv=3, seed=646719267):
-    '''
-    params is dict
-    '''
-    kf = KFold(n_splits=cv, shuffle=True, random_state=seed)
-    aucs=np.zeros([cv,params['n_estimators']])
-    row=0
-    for trainIdx, testIdx in kf.split(range(len(x))):
-        gb = GradientBoostingClassifier(**params)
-        gb.fit(x[trainIdx], y[trainIdx])
-        aucLst=[]
-        for preds in gb.staged_predict_proba(x[testIdx]):
-            aucLst.append(score_func(y[testIdx], preds))
-        aucs[row]=aucLst
-        row+=1
-    aucLst = aucs.mean(axis=0)
-    plt.scatter(range(len(aucLst)), aucLst, marker='.')
-    plt.scatter(np.argmax(aucLst), max(aucLst), marker='o', c='red')
-    plt.xlabel('number of trees')
-    plt.ylabel('mean AUC')
-    plt.title('max depth = 5, learning rate = 0.001')
-    plt.show()
-    return np.argmax(aucLst)
+
 #it seems likely that the optimal occurs at >16000 trees; this is probably infeasible to run
 #due to variance, the max in this dataset occurs at 15998 trees
 
