@@ -55,7 +55,7 @@ def findNum2(xTrain,yTrain,xTest,yTest,params={}):
     aucLst=[]
     for preds in gb.staged_predict_proba(xTest):
         aucLst.append(score_func(yTest, preds))
-    return np.argmax(aucLst), aucLst
+    return aucLst
 
 def plotFindNum(aucLst, params='title'):
     plt.scatter(range(len(aucLst)), aucLst, marker='.')
@@ -65,7 +65,6 @@ def plotFindNum(aucLst, params='title'):
     plt.title(params)
     plt.show()
     
-
 # def search(x,y,params,cv=5):
 
 #     clf = GridSearchCV(GradientBoostingClassifier(), params, scorer,
@@ -75,78 +74,39 @@ def plotFindNum(aucLst, params='title'):
 #         clf.fit(x,y)
 #     return pd.DataFrame(clf.cv_results_)
 
-''' gets a rough idea where the best parameters lie '''
-boosting_grid_rough = {'learning_rate': np.logspace(-3, 0, num = 4),
-                        'max_depth': [2, 3, 5],
-                        'n_estimators': [10, 30, 100, 300, 1000]}
+def search(xTrain,yTrain,xTest,yTest,lrnRates,params={}):
+    out=[]
+    for lrnRate in lrnRates:
+        params.update({'learning_rate': lrnRate})
+        aucLst = findNum2(xTrain,yTrain,xTest,yTest,params)
+        num=np.argmax(aucLst)
+        out.append([lrnRate, params['max_depth'], num+1, aucLst[num]])
+    return out
 
-df=search(x,y,boosting_grid_rough,3)
-df.sort_values(by='mean_test_score').tail(10)
+df=pd.DataFrame(search(xTrain,yTrain,xVal,yVal,np.logspace(-3,0,num=4),
+    params={'max_depth':2,'n_estimators':1000}),
+    columns=['learning_rate','max_depth','n_estimators','validation AUC'])
+df.sort_values(by='validation AUC')
 
-# results will vary, but top 10 results on this machine:
-#'learning_rate': 0.01 - .1
-#'max_depth': [2, 3, 5],
-#'n_estimators': [100, 300, 1000]
-
-boosting_grid_med = {'learning_rate': np.logspace(-2.5, -.5, num = 5),
-                        'max_depth': [1, 4, 7, 10],
-                        'n_estimators': [100, 300, 1000, 3000, 6000]}
-
-df=search(x,y,boosting_grid_med,3)
-df.sort_values(by='mean_test_score').tail(10)
-
-# results will vary, but top 20 results on this machine:
-#'learning_rate': 0.00316228 - 0.316228
-#'max_depth': [1, 4, 7, 10],
-#'n_estimators': [100, 300, 1000]
-
-boosting_grid_med2 = {'learning_rate': np.logspace(-3, -1, num = 5),
-                        'max_depth': [4, 5, 6, 7],
-                        'n_estimators': [300, 1000, 3000, 4500, 6800, 10000]}
-
-df=search(x,y,boosting_grid_med2,3)
-df.sort_values(by='mean_test_score').tail(10)
-
-# results will vary, but top 20 results on this machine:
-#'learning_rate': 0.001 - 0.0316228
-#'max_depth': [4,5,6],
-#'n_estimators': [300, 1000, 3000, 4500, 6800, 10000]
-
-####################
-#final tuning
-
-#it seems likely that the optimal occurs at >16000 trees; this is probably infeasible to run
-#due to variance, the max in this dataset occurs at 15998 trees
-
-kf = KFold(n_splits=10, shuffle=True, random_state=646719267)
-aucs2=np.zeros([10,16000])
-row=0
-for trainIdx, testIdx in kf.split(range(len(X))):
-    gb = GradientBoostingClassifier(**{'learning_rate': 0.003, 'max_depth': 5, 'n_estimators': 16000})
-    gb.fit(X.iloc[trainIdx], y.iloc[trainIdx])
-    aucLst=[]
-    for preds in gb.staged_predict_proba(X.iloc[testIdx]):
-        aucLst.append(roc_auc_score(y.iloc[testIdx], preds[:,1]))
-    aucs2[row]=aucLst
-    row+=1
-aucLst2 = aucs2.mean(axis=0)
-plt.scatter(range(len(aucLst2)), aucLst2, marker='.')
-plt.scatter(np.argmax(aucLst2), max(aucLst2), marker='o', c='red')
-plt.xlabel('number of trees')
-plt.ylabel('mean AUC')
-plt.title('max depth = 5, learning rate = 0.003')
-plt.show()
-#max occurs at around 5757 trees
-#mean AUC at this point is around 0.9838914306225004
+#   learning_rate  max_depth  n_estimators  validation AUC
+#          0.001          4           956        0.973071
+#          1.000          4             3        0.973416
+#          0.010          4           375        0.977147
+#          0.100          4            45        0.977802
+# similar results for max depth of 2,3,5,6
+# too similar - leak?
 
 ### final validation
-gb = GradientBoostingClassifier(**{'learning_rate': 0.003, 'max_depth': 5, 'n_estimators': 5757})
-gb.fit(X, y)
-Xtest = pd.read_json('data/testFeats.json')
-ytest = pd.read_json('data/testLabel.json', typ='Series', dtype=False)
-preds = gb.predict_proba(Xtest)
-auc = roc_auc_score(ytest, preds[:,1])
-#0.9859929921359716
+gb = GradientBoostingClassifier(**{'learning_rate': 0.1, 'max_depth': 4, 'n_estimators': 45})
+gb.fit(np.vstack([xTrain,xVal]), np.hstack([yTrain,yVal]))
+xTest = np.load(dirName + 'testFeat.npy')
+yTest = np.load(dirName + 'testlabel.npy')[:,1]
+preds = gb.predict_proba(xTest)
+auc = score_func(yTest, preds)
+#0.9783068783068782
+
+mask = gb.predict(xTest)==yTest
+
 
 fpr, tpr, thresholds = roc_curve(ytest, preds[:,1], pos_label=1)
 plt.scatter(fpr,tpr, marker='.')
