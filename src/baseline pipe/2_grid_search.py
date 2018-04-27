@@ -16,12 +16,14 @@ def score_func(y, y_pred, **kwargs):
     mask = y!='~'
     y=y[mask]
     y_pred=y_pred[mask]
+    print(y_pred.min(axis=0))
     y_pred=y_pred[:,0]/(y_pred[:,0]+y_pred[:,1])
     mask = np.isnan(y_pred)
     y_pred[mask]=.5
     mask = y=='A'
     y = np.zeros(len(y))
     y[mask]=1
+
     return roc_auc_score(y, y_pred)
 
 scorer = make_scorer(score_func, needs_proba=True)
