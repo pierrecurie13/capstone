@@ -1,9 +1,11 @@
 import numpy as np
 import pandas as pd
 import pickle
+import dill
 from sklearn.model_selection import GridSearchCV, KFold
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import roc_auc_score, roc_curve, make_scorer
+from sklearn.externals.joblib import parallel_backend
 import matplotlib.pyplot as plt
 
 dirName = 'data/training2017/'
@@ -11,6 +13,9 @@ x = np.load(dirName + 'trainFeat.npy')
 y = np.load(dirName + 'trainlabel.npy')
 
 def score_func(y, y_pred, **kwargs):
+    mask = y!='~'
+    y=y[mask]
+    y_pred=y_pred[mask]
     y_pred=y_pred[:,0]/(y_pred[:,0]+y_pred[:,1])
     mask = y=='A'
     y = np.zeros(len(y))
@@ -19,15 +24,21 @@ def score_func(y, y_pred, **kwargs):
 
 scorer = make_scorer(score_func, needs_proba=True)
 
+def search(x,y,params,cv=5):
+
+    clf = GridSearchCV(GradientBoostingClassifier(), params, scorer,
+                                n_jobs=3, cv=cv, verbose=1)
+    print("Starting grid search - coarse (will take several minutes)")
+    with parallel_backend('threading'):
+        clf.fit(x,y)
+    return pd.DataFrame(clf.cv_results_)
+
 ''' gets a rough idea where the best parameters lie '''
 boosting_grid_rough = {'learning_rate': np.logspace(-3, 0, num = 5),
                         'max_depth': [2, 3, 5],
                         'n_estimators': [10, 30, 100, 300, 1000]}
 
-coarse_search = GridSearchCV(GradientBoostingClassifier(), boosting_grid_rough, scorer)
-print("Starting grid search - coarse (will take several minutes)")
-coarse_search.fit(x, y)
-df = pd.DataFrame(coarse_search.cv_results_)
+df=search(x,y,boosting_grid_rough,3)
 df.sort_values(by='mean_test_score').tail(10)
 
 # results will vary, but top 10 results on this machine:
