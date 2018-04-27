@@ -10,6 +10,10 @@ test = df.sample(frac=.2)
 trainIdx = list(set(df.index) - set(test.index))
 train = df.loc[trainIdx]
 
+valid = train.sample(frac=.2)
+trainIdx = list(set(train.index) - set(valid.index))
+train = df.loc[trainIdx]
+
 sigs, ys = consolidateData(train, dirName)
 np.save(dirName + 'train', sigs)
 np.save(dirName + 'trainlabel', ys)
@@ -18,7 +22,9 @@ sigs, ys = consolidateData(test, dirName)
 np.save(dirName + 'test', sigs)
 np.save(dirName + 'testlabel', ys)
 
-
+sigs, ys = consolidateData(valid, dirName)
+np.save(dirName + 'valid', sigs)
+np.save(dirName + 'validlabel', ys)
 
 def chunk(signal, y, chunkSize=4096):
     '''
@@ -63,7 +69,7 @@ def consolidateData(df, dirName, chunkSize=4096):
         fname = dirName + row['name']
         sig, _ = wfdb.rdsamp(fname)
         sig=sig.reshape(-1)
-        sigs, ys = chunk(sig, row.label, chunkSize)
+        sigs, ys = chunk(sig, [row['name'], row.label], chunkSize)
         sigOut.extend(sigs)
         yOut.extend(ys)
-    return np.vstack(sigOut), yOut
+    return np.array(sigOut), np.array(yOut)

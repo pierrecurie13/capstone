@@ -6,11 +6,16 @@ from scipy.stats import kurtosis as kurt, skew
 import pickle
 
 dirName = 'data/training2017/'
-x = np.load(dirName + 'test.npy')
-feats=[]
-for row in x:
-    feats.append(genFeat(row, 300))
-np.save(dirName + 'testFeat', np.array(feats))
+toFeats(dirName, 'train')
+toFeats(dirName, 'test')
+toFeats(dirName, 'valid')
+
+def toFeats(dirName, fName):
+    x = np.load(dirName + fName + '.npy')
+    feats=[]
+    for row in x:
+        feats.append(genFeat(row, 300))
+    np.save(dirName + fName + 'Feat', np.array(feats))
 
 def genFeat(signal, fs):
     '''

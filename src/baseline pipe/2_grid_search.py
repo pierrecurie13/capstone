@@ -76,7 +76,7 @@ df.sort_values(by='mean_test_score').tail(10)
 
 ####################
 #final tuning
-def findNum(x,y,params, cv=3, seed=646719267)
+def findNum(x,y,params, cv=3, seed=646719267):
     '''
     params is dict
     '''
