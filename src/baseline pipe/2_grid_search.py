@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import pickle
 from sklearn.model_selection import KFold
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import roc_auc_score, roc_curve, make_scorer
@@ -105,10 +106,12 @@ preds = gb.predict_proba(xTest)
 auc = score_func(yTest, preds)
 #0.9783068783068782
 
-mask = gb.predict(xTest)==yTest
+df = pd.DataFrame(preds,columns=['A','N','~'])
+df['prediction']=gb.predict(xTest)
+df['actual']=yTest
 
 
-fpr, tpr, thresholds = roc_curve(ytest, preds[:,1], pos_label=1)
+fpr, tpr, thresholds = roc_curve(yTest, preds[:,0], pos_label=1)
 plt.scatter(fpr,tpr, marker='.')
 plt.xlabel('false positive rate')
 plt.ylabel('true positive rate')
@@ -116,9 +119,7 @@ plt.show()
 
 ###
 #train final model
-X2 = X.append(Xtest)
-y2 = y.append(ytest)
-gb2 = GradientBoostingClassifier(**{'learning_rate': 0.003, 'max_depth': 5, 'n_estimators': 5757})
-gb2.fit(X2, y2)
-with open('data/model_final.p','wb') as f:
-    pickle.dump(gb2, f)
+gb = GradientBoostingClassifier(**{'learning_rate': 0.1, 'max_depth': 4, 'n_estimators': 45})
+gb.fit(np.vstack([xTrain,xVal,xTest]), np.hstack([yTrain,yVal,yTest]))
+with open(dirName + 'baseline_model.p','wb') as f:
+    pickle.dump(gb, f)
