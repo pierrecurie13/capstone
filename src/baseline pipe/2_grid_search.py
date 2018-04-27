@@ -17,6 +17,8 @@ def score_func(y, y_pred, **kwargs):
     y=y[mask]
     y_pred=y_pred[mask]
     y_pred=y_pred[:,0]/(y_pred[:,0]+y_pred[:,1])
+    mask = np.isnan(y_pred)
+    y_pred[mask]=.5
     mask = y=='A'
     y = np.zeros(len(y))
     y[mask]=1
@@ -34,7 +36,7 @@ def search(x,y,params,cv=5):
     return pd.DataFrame(clf.cv_results_)
 
 ''' gets a rough idea where the best parameters lie '''
-boosting_grid_rough = {'learning_rate': np.logspace(-3, 0, num = 5),
+boosting_grid_rough = {'learning_rate': np.logspace(-3, 0, num = 4),
                         'max_depth': [2, 3, 5],
                         'n_estimators': [10, 30, 100, 300, 1000]}
 
@@ -50,11 +52,7 @@ boosting_grid_med = {'learning_rate': np.logspace(-2.5, -.5, num = 5),
                         'max_depth': [1, 4, 7, 10],
                         'n_estimators': [100, 300, 1000, 3000, 6000]}
 
-coarse_search = GridSearchCV(GradientBoostingClassifier(), boosting_grid_med, "roc_auc",
-                n_jobs=3, cv=5, verbose=1)
-print("Starting grid search - coarse (will take several minutes)")
-coarse_search.fit(X, y)
-df = pd.DataFrame(coarse_search.cv_results_)
+df=search(x,y,boosting_grid_med,3)
 df.sort_values(by='mean_test_score').tail(10)
 
 # results will vary, but top 20 results on this machine:
@@ -66,13 +64,8 @@ boosting_grid_med2 = {'learning_rate': np.logspace(-3, -1, num = 5),
                         'max_depth': [4, 5, 6, 7],
                         'n_estimators': [300, 1000, 3000, 4500, 6800, 10000]}
 
-coarse_search = GridSearchCV(GradientBoostingClassifier(), boosting_grid_med2, "roc_auc",
-                n_jobs=3, cv=5, verbose=1)
-print("Starting grid search - coarse (will take several minutes)")
-coarse_search.fit(X, y)
-print("done")
-df = pd.DataFrame(coarse_search.cv_results_)
-df.sort_values(by='mean_test_score').tail(20)
+df=search(x,y,boosting_grid_med2,3)
+df.sort_values(by='mean_test_score').tail(10)
 
 # results will vary, but top 20 results on this machine:
 #'learning_rate': 0.001 - 0.0316228
@@ -81,24 +74,29 @@ df.sort_values(by='mean_test_score').tail(20)
 
 ####################
 #final tuning
-kf = KFold(n_splits=10, shuffle=True, random_state=646719267)
-aucs=np.zeros([10,16000])
-row=0
-for trainIdx, testIdx in kf.split(range(len(X))):
-    gb = GradientBoostingClassifier(**{'learning_rate': 0.001, 'max_depth': 5, 'n_estimators': 16000})
-    gb.fit(X.iloc[trainIdx], y.iloc[trainIdx])
-    aucLst=[]
-    for preds in gb.staged_predict_proba(X.iloc[testIdx]):
-        aucLst.append(roc_auc_score(y.iloc[testIdx], preds[:,1]))
-    aucs[row]=aucLst
-    row+=1
-aucLst = aucs.mean(axis=0)
-plt.scatter(range(len(aucLst)), aucLst, marker='.')
-plt.scatter(np.argmax(aucLst), max(aucLst), marker='o', c='red')
-plt.xlabel('number of trees')
-plt.ylabel('mean AUC')
-plt.title('max depth = 5, learning rate = 0.001')
-plt.show()
+def findNum(x,y,params, cv=3, seed=646719267)
+    '''
+    params is dict
+    '''
+    kf = KFold(n_splits=cv, shuffle=True, random_state=seed)
+    aucs=np.zeros([cv,params['n_estimators']])
+    row=0
+    for trainIdx, testIdx in kf.split(range(len(x))):
+        gb = GradientBoostingClassifier(**params)
+        gb.fit(x[trainIdx], y[trainIdx])
+        aucLst=[]
+        for preds in gb.staged_predict_proba(x[testIdx]):
+            aucLst.append(score_func(y[testIdx], preds))
+        aucs[row]=aucLst
+        row+=1
+    aucLst = aucs.mean(axis=0)
+    plt.scatter(range(len(aucLst)), aucLst, marker='.')
+    plt.scatter(np.argmax(aucLst), max(aucLst), marker='o', c='red')
+    plt.xlabel('number of trees')
+    plt.ylabel('mean AUC')
+    plt.title('max depth = 5, learning rate = 0.001')
+    plt.show()
+    return np.argmax(aucLst)
 #it seems likely that the optimal occurs at >16000 trees; this is probably infeasible to run
 #due to variance, the max in this dataset occurs at 15998 trees
 
