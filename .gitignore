@@ -10,4 +10,7 @@
 *.xws
 *.p
 *.npy
+*.jpg
+*.bmp
+*.png
 data

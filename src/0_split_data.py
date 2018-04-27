@@ -14,6 +14,10 @@ sigs, ys = consolidateData(train, dirName)
 np.save(dirName + 'train', sigs)
 np.save(dirName + 'trainlabel', ys)
 
+sigs, ys = consolidateData(test, dirName)
+np.save(dirName + 'test', sigs)
+np.save(dirName + 'testlabel', ys)
+
 
 
 def chunk(signal, y, chunkSize=4096):
