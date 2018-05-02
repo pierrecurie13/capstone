@@ -60,25 +60,31 @@ def cnn(input_shape):
     Returns:
     model -- a Model() instance in Keras
     """
-    
     # Define the input placeholder as a tensor with shape input_shape. Think of this as your input image!
     X_input = Input(input_shape)
 
     # CONV -> BN -> RELU Block applied to X
-    X = Conv1D(10, 8, strides=4, name = 'conv0')(X_input)
-    #X = BatchNormalization(axis = 3, name = 'bn0')(X)
+    X = Conv1D(16, 8, strides=8, name = 'conv0')(X_input)
+    X = BatchNormalization(name = 'bn0')(X)
+    X = MaxPooling1D(2, name='max_pool')(X)
     X = Activation('relu')(X)
 
-    # MAXPOOL
-    X = MaxPooling1D(2, name='max_pool')(X)
+    X = Conv1D(32, 8, strides=8, name = 'conv1')(X)
+    X = BatchNormalization(name = 'bn1')(X)
+    X = MaxPooling1D(2, name='max_pool1')(X)
+    X = Activation('relu')(X)
+
+    X = Conv1D(64, 8, strides=8, name = 'conv2')(X)
+    X = BatchNormalization(name = 'bn2')(X)
+    X = MaxPooling1D(2, name='max_pool2')(X)
+    X = Activation('relu')(X)
 
     # FLATTEN X (means convert it to a vector) + FULLYCONNECTED
     X = Flatten()(X)
-    X = Dense(1, activation='softmax', name='fc')(X)
+    X = Dense(3, activation='softmax', name='fc')(X)
 
     # Create model. This creates your Keras model instance, you'll use this instance to train/test the model.
     model = Model(inputs = X_input, outputs = X, name='derp')
-
     return model
 
 clf = cnn((*(xTrain.shape[1:]),1))
