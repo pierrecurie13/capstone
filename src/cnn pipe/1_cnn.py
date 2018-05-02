@@ -69,16 +69,25 @@ def cnn(input_shape):
     X = MaxPooling1D(2, name='max_pool')(X)
     X = Activation('relu')(X)
 
-    X = Conv1D(32, 8, strides=8, name = 'conv1')(X)
+    X = Dropout(.15)(X)
+    X = Conv1D(32, 4, strides=4, name = 'conv1')(X)
     X = BatchNormalization(name = 'bn1')(X)
     X = MaxPooling1D(2, name='max_pool1')(X)
     X = Activation('relu')(X)
 
-    X = Conv1D(64, 8, strides=8, name = 'conv2')(X)
+    X = Dropout(.3)(X)
+    X = Conv1D(64, 2, strides=2, name = 'conv2')(X)
     X = BatchNormalization(name = 'bn2')(X)
     X = MaxPooling1D(2, name='max_pool2')(X)
     X = Activation('relu')(X)
 
+    X = Dropout(.3)(X)
+    X = Conv1D(64, 2, strides=2, name = 'conv3')(X)
+    X = BatchNormalization(name = 'bn3')(X)
+    X = MaxPooling1D(2, name='max_pool3')(X)
+    X = Activation('relu')(X)
+
+    X = Dropout(.15)(X)
     # FLATTEN X (means convert it to a vector) + FULLYCONNECTED
     X = Flatten()(X)
     X = Dense(3, activation='softmax', name='fc')(X)
@@ -89,11 +98,29 @@ def cnn(input_shape):
 
 clf = cnn((*(xTrain.shape[1:]),1))
 clf.compile('adam','categorical_crossentropy',['accuracy'])
-hist = clf.fit(xTrain.reshape(*xTrain.shape,1), yTrain, 16, 5, validation_data=(xVal.reshape(*xVal.shape,1),yVal))
+hist = clf.fit(xTrain.reshape(*xTrain.shape,1), yTrain, 16, 50, validation_data=(xVal.reshape(*xVal.shape,1),yVal))
 hist = hist.history
 
 plt.plot(hist['acc'])
 plt.plot(hist['val_acc'])
+plt.show()
+
+# serialize model to JSON
+model_json = clf.to_json()
+with open("model.json", "w") as f:
+    f.write(model_json)
+# serialize weights to HDF5
+clf.save_weights("model.h5")
+
+
+# load json and create model
+json_file = open('model.json', 'r')
+loaded_model_json = json_file.read()
+json_file.close()
+loaded_model = model_from_json(loaded_model_json)
+# load weights into new model
+loaded_model.load_weights("model.h5")
+
 
 clf.summary()
 plot_model(clf)#, to_file='HappyModel.png')
