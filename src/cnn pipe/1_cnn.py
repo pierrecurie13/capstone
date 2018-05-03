@@ -2,18 +2,11 @@ import pandas as pd
 import numpy as np
 import pickle
 
-#from keras import layers
 from keras.layers import Input, Dense, Activation, BatchNormalization, Flatten, Conv1D
 from keras.layers import MaxPooling1D, Dropout
 from keras.models import Model
-#from keras.utils import layer_utils
-#from keras.utils.data_utils import get_file
-#from keras.applications.imagenet_utils import preprocess_input
 #import pydot
 #from IPython.display import SVG
-#from keras.utils.vis_utils import model_to_dot
-#from keras.utils import plot_model
-#from kt_utils import *
 import keras.backend as K
 from keras.utils.np_utils import to_categorical
 
@@ -96,9 +89,146 @@ def cnn(input_shape):
     model = Model(inputs = X_input, outputs = X, name='derp')
     return model
 
-clf = cnn((*(xTrain.shape[1:]),1))
+def cnn2(input_shape):
+    """
+    Implementation of the HappyModel.
+    
+    Arguments:
+    input_shape -- shape of the images of the dataset
+
+    Returns:
+    model -- a Model() instance in Keras
+    """
+    # Define the input placeholder as a tensor with shape input_shape. Think of this as your input image!
+    X_input = Input(input_shape)
+
+    X = BatchNormalization(name = 'bnm1')(X_input)
+    # CONV -> BN -> RELU Block applied to X
+    X = Conv1D(16, 8, strides=8, name = 'conv0')(X)
+    X = BatchNormalization(name = 'bn0')(X)
+    X = MaxPooling1D(2, name='max_pool')(X)
+    X = Activation('relu')(X)
+
+    X = Dropout(.15)(X)
+    X = Conv1D(32, 4, strides=4, name = 'conv1')(X)
+    X = BatchNormalization(name = 'bn1')(X)
+    X = MaxPooling1D(2, name='max_pool1')(X)
+    X = Activation('relu')(X)
+
+    X = Dropout(.3)(X)
+    X = Conv1D(64, 2, strides=2, name = 'conv2')(X)
+    X = BatchNormalization(name = 'bn2')(X)
+    X = MaxPooling1D(2, name='max_pool2')(X)
+    X = Activation('relu')(X)
+
+    X = Dropout(.3)(X)
+    X = Conv1D(64, 2, strides=2, name = 'conv3')(X)
+    X = BatchNormalization(name = 'bn3')(X)
+    X = MaxPooling1D(2, name='max_pool3')(X)
+    X = Activation('relu')(X)
+
+    X = Dropout(.15)(X)
+    # FLATTEN X (means convert it to a vector) + FULLYCONNECTED
+    X = Flatten()(X)
+    X = Dense(3, activation='softmax', name='fc')(X)
+
+    # Create model. This creates your Keras model instance, you'll use this instance to train/test the model.
+    model = Model(inputs = X_input, outputs = X, name='derp')
+    return model
+
+def cnnOverlap(input_shape):
+    """
+    Implementation of the HappyModel.
+    
+    Arguments:
+    input_shape -- shape of the images of the dataset
+
+    Returns:
+    model -- a Model() instance in Keras
+    """
+    # Define the input placeholder as a tensor with shape input_shape. Think of this as your input image!
+    X_input = Input(input_shape)
+
+    # CONV -> BN -> RELU Block applied to X
+    X = Conv1D(16, 8, strides=4, name = 'conv0')(X_input)
+    X = BatchNormalization(name = 'bn0')(X)
+    X = MaxPooling1D(2, name='max_pool')(X)
+    X = Activation('relu')(X)
+
+    X = Dropout(.1)(X)
+    X = Conv1D(32, 4, strides=2, name = 'conv1')(X)
+    X = BatchNormalization(name = 'bn1')(X)
+    X = MaxPooling1D(2, name='max_pool1')(X)
+    X = Activation('relu')(X)
+
+    X = Dropout(.2)(X)
+    X = Conv1D(64, 4, strides=2, name = 'conv2')(X)
+    X = BatchNormalization(name = 'bn2')(X)
+    X = MaxPooling1D(2, name='max_pool2')(X)
+    X = Activation('relu')(X)
+
+    X = Dropout(.3)(X)
+    X = Conv1D(64, 4, strides=2, name = 'conv3')(X)
+    X = BatchNormalization(name = 'bn3')(X)
+    X = MaxPooling1D(2, name='max_pool3')(X)
+    X = Activation('relu')(X)
+
+    X = Dropout(.15)(X)
+    # FLATTEN X (means convert it to a vector) + FULLYCONNECTED
+    X = Flatten()(X)
+    X = Dense(3, activation='softmax', name='fc')(X)
+
+    # Create model. This creates your Keras model instance, you'll use this instance to train/test the model.
+    model = Model(inputs = X_input, outputs = X, name='derp')
+    return model
+
+def cnnOverlapOneDrop(input_shape):
+    """
+    Implementation of the HappyModel.
+    
+    Arguments:
+    input_shape -- shape of the images of the dataset
+
+    Returns:
+    model -- a Model() instance in Keras
+    """
+    # Define the input placeholder as a tensor with shape input_shape. Think of this as your input image!
+    X_input = Input(input_shape)
+
+    # CONV -> BN -> RELU Block applied to X
+    X = Conv1D(16, 8, strides=4, name = 'conv0')(X_input)
+    X = BatchNormalization(name = 'bn0')(X)
+    X = MaxPooling1D(2, name='max_pool')(X)
+    X = Activation('relu')(X)
+
+    X = Conv1D(32, 4, strides=2, name = 'conv1')(X)
+    X = BatchNormalization(name = 'bn1')(X)
+    X = MaxPooling1D(2, name='max_pool1')(X)
+    X = Activation('relu')(X)
+
+    X = Conv1D(64, 4, strides=2, name = 'conv2')(X)
+    X = BatchNormalization(name = 'bn2')(X)
+    X = MaxPooling1D(2, name='max_pool2')(X)
+    X = Activation('relu')(X)
+
+    X = Conv1D(64, 4, strides=2, name = 'conv3')(X)
+    X = BatchNormalization(name = 'bn3')(X)
+    X = MaxPooling1D(2, name='max_pool3')(X)
+    X = Activation('relu')(X)
+
+    X = Dropout(.2)(X)
+    # FLATTEN X (means convert it to a vector) + FULLYCONNECTED
+    X = Flatten()(X)
+    X = Dense(3, activation='softmax', name='fc')(X)
+
+    # Create model. This creates your Keras model instance, you'll use this instance to train/test the model.
+    model = Model(inputs = X_input, outputs = X, name='derp')
+    return model
+
+clf = cnnOverlapOneDrop((*(xTrain.shape[1:]),1))
 clf.compile('adam','categorical_crossentropy',['accuracy'])
-hist = clf.fit(xTrain.reshape(*xTrain.shape,1), yTrain, 16, 50, validation_data=(xVal.reshape(*xVal.shape,1),yVal))
+
+hist = clf.fit(xTrain.reshape(*xTrain.shape,1), yTrain, 16, 100, validation_data=(xVal.reshape(*xVal.shape,1),yVal))
 hist = hist.history
 
 plt.plot(hist['acc'])
@@ -107,10 +237,10 @@ plt.show()
 
 # serialize model to JSON
 model_json = clf.to_json()
-with open("model.json", "w") as f:
+with open("data/models/modelOverlap.json", "w") as f:
     f.write(model_json)
 # serialize weights to HDF5
-clf.save_weights("model.h5")
+clf.save_weights("data/models/modelOverlap.h5")
 
 
 # load json and create model
