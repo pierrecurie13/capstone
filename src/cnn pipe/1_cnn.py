@@ -40,22 +40,24 @@ def plot_score(y, y_pred):
     return pd.DataFrame([fpr, tpr, thresh]).T
 
 def score_func2(y, y_pred):
-    y=y[:0]
-    y_pred=y_pred[:0]
+    y=y[:,0]
+    y_pred=y_pred[:,0]
     return roc_auc_score(y, y_pred)
 
 def plot_score2(y, y_pred):
-    y=y[:0]
-    y_pred=y_pred[:0]
+    y=y[:,0]
+    y_pred=y_pred[:,0]
     fpr, tpr, thresh = roc_curve(y, y_pred)
     plt.scatter(fpr,tpr)
     plt.show()
     return pd.DataFrame([fpr, tpr, thresh]).T
 
 def confMat(y, y_pred):
+    #each row corresponds to a true value
+    #each col corresponds to a prediction
     y = np.argmax(y,axis=1)
     y_pred=np.argmax(y_pred,axis=1)
-    return confusion_matrix(y, y_pred).T
+    return confusion_matrix(y, y_pred)
 
 dirName = 'data/training2017/'
 xTrain = np.load(dirName + 'train.npy')
@@ -85,7 +87,7 @@ print ("yVal shape: " + str(yVal.shape))
 #model
 def cnn(input_shape):
     """
-    Implementation of the HappyModel.
+    base model
     
     Arguments:
     input_shape -- shape of the images of the dataset
@@ -129,56 +131,9 @@ def cnn(input_shape):
     model = Model(inputs = X_input, outputs = X, name='derp')
     return model
 
-def cnn2(input_shape):
-    """
-    Implementation of the HappyModel.
-    
-    Arguments:
-    input_shape -- shape of the images of the dataset
-
-    Returns:
-    model -- a Model() instance in Keras
-    """
-    # Define the input placeholder as a tensor with shape input_shape. Think of this as your input image!
-    X_input = Input(input_shape)
-
-    X = BatchNormalization(name = 'bnm1')(X_input)
-    # CONV -> BN -> RELU Block applied to X
-    X = Conv1D(16, 8, strides=8, name = 'conv0')(X)
-    X = BatchNormalization(name = 'bn0')(X)
-    X = MaxPooling1D(2, name='max_pool')(X)
-    X = Activation('relu')(X)
-
-    X = Dropout(.15)(X)
-    X = Conv1D(32, 4, strides=4, name = 'conv1')(X)
-    X = BatchNormalization(name = 'bn1')(X)
-    X = MaxPooling1D(2, name='max_pool1')(X)
-    X = Activation('relu')(X)
-
-    X = Dropout(.3)(X)
-    X = Conv1D(64, 2, strides=2, name = 'conv2')(X)
-    X = BatchNormalization(name = 'bn2')(X)
-    X = MaxPooling1D(2, name='max_pool2')(X)
-    X = Activation('relu')(X)
-
-    X = Dropout(.3)(X)
-    X = Conv1D(64, 2, strides=2, name = 'conv3')(X)
-    X = BatchNormalization(name = 'bn3')(X)
-    X = MaxPooling1D(2, name='max_pool3')(X)
-    X = Activation('relu')(X)
-
-    X = Dropout(.15)(X)
-    # FLATTEN X (means convert it to a vector) + FULLYCONNECTED
-    X = Flatten()(X)
-    X = Dense(3, activation='softmax', name='fc')(X)
-
-    # Create model. This creates your Keras model instance, you'll use this instance to train/test the model.
-    model = Model(inputs = X_input, outputs = X, name='derp')
-    return model
-
 def cnnOverlap(input_shape):
     """
-    Implementation of the HappyModel.
+    adding overlap in the conv layers, with batchnorm and dropouts
     
     Arguments:
     input_shape -- shape of the images of the dataset
@@ -224,7 +179,7 @@ def cnnOverlap(input_shape):
 
 def cnnOverlapOneDrop(input_shape):
     """
-    Implementation of the HappyModel.
+    same, but with dropouts pushed to end
     
     Arguments:
     input_shape -- shape of the images of the dataset
@@ -267,7 +222,7 @@ def cnnOverlapOneDrop(input_shape):
 
 def cnnOverlapDeeper(input_shape):
     """
-    Implementation of the HappyModel.
+    trying lots of tweaks
     
     Arguments:
     input_shape -- shape of the images of the dataset
@@ -297,7 +252,58 @@ def cnnOverlapDeeper(input_shape):
     X = Conv1D(64, 4, strides=2, name = 'conv3')(X)
     X = BatchNormalization()(X)
     #X = MaxPooling1D(2, name='max_pool2')(X)
+    X = Activation('relu')(X)
+
+    X = Dropout(.2)(X)
+    X = Conv1D(64, 4, strides=2, name = 'conv4')(X)
+    X = MaxPooling1D(2, name='max_pool3')(X)
     X = Activation(K.square)(X)
+
+    #X = Dropout(.2)(X)
+    # FLATTEN X (means convert it to a vector) + FULLYCONNECTED
+    X = Flatten()(X)
+    #X = Dense(8, activation='tanh', name='fc2')(X)
+
+    X = Dropout(.2)(X)
+    X = Dense(3, activation='softmax', name='fc')(X)
+
+    # Create model. This creates your Keras model instance, you'll use this instance to train/test the model.
+    model = Model(inputs = X_input, outputs = X, name='derp')
+    return model
+
+def cnnNarrow(input_shape):
+    """
+    fewer channels at each conv layer
+    
+    Arguments:
+    input_shape -- shape of the images of the dataset
+
+    Returns:
+    model -- a Model() instance in Keras
+    """
+    # Define the input placeholder as a tensor with shape input_shape. Think of this as your input image!
+    X_input = Input(input_shape)
+
+    # CONV -> BN -> RELU Block applied to X
+    X = Conv1D(8, 8, strides=4, name = 'conv0')(X_input)
+    X = BatchNormalization()(X)
+    X = MaxPooling1D(2, name='max_pool')(X)
+    #X = Activation('relu')(X)
+
+    # X = Conv1D(32, 4, strides=2, name = 'conv1')(X)
+    # X = BatchNormalization()(X)
+    # X = MaxPooling1D(2)(X)
+    # X = Activation('relu')(X)
+
+    X = Conv1D(16, 4, strides=2, name = 'conv2')(X)
+    X = BatchNormalization()(X)
+    X = MaxPooling1D(2, name='max_pool1')(X)
+    X = Activation('relu')(X)
+
+    X = Conv1D(32, 4, strides=2, name = 'conv3')(X)
+    X = BatchNormalization()(X)
+    #X = MaxPooling1D(2, name='max_pool2')(X)
+    #X = Activation('relu')(X)
 
     X = Dropout(.2)(X)
     X = Conv1D(64, 4, strides=2, name = 'conv4')(X)
@@ -307,7 +313,7 @@ def cnnOverlapDeeper(input_shape):
     #X = Dropout(.2)(X)
     # FLATTEN X (means convert it to a vector) + FULLYCONNECTED
     X = Flatten()(X)
-    # X = Dense(8, activation='tanh', name='fc2')(X)
+    #X = Dense(8, activation='tanh', name='fc2')(X)
 
     X = Dropout(.2)(X)
     X = Dense(3, activation='softmax', name='fc')(X)
@@ -316,12 +322,65 @@ def cnnOverlapDeeper(input_shape):
     model = Model(inputs = X_input, outputs = X, name='derp')
     return model
 
-clf = cnnOverlapDeeper((*(xTrain.shape[1:]),1))
-clf.compile('adam','categorical_crossentropy',['accuracy'])
+def cnnFullOver(input_shape):
+    """
+    maximum overlap, slowest?
+    
+    Arguments:
+    input_shape -- shape of the images of the dataset
 
-hist = clf.fit(xTrain.reshape(*xTrain.shape,1), yTrain, 16, 100, validation_data=(xVal.reshape(*xVal.shape,1),yVal))
-hist = hist.history
+    Returns:
+    model -- a Model() instance in Keras
+    """
+    # Define the input placeholder as a tensor with shape input_shape. Think of this as your input image!
+    X_input = Input(input_shape)
 
+    # CONV -> BN -> RELU Block applied to X
+    X = Conv1D(4, 8, strides=1, name = 'conv0')(X_input)
+    X = BatchNormalization()(X)
+    X = MaxPooling1D(2, name='max_pool')(X)
+    X = Activation('relu')(X)
+
+    X = Conv1D(8, 4, strides=1, name = 'conv2')(X)
+    X = BatchNormalization()(X)
+    X = MaxPooling1D(2, name='max_pool1')(X)
+    X = Activation('relu')(X)
+
+    X = Conv1D(8, 4, strides=1, name = 'conv3')(X)
+    X = BatchNormalization()(X)
+    X = MaxPooling1D(2, name='max_pool2')(X)
+    X = Activation('relu')(X)
+
+    X = Conv1D(16, 4, strides=1, name = 'conv4')(X)
+    X = BatchNormalization()(X)
+    X = MaxPooling1D(2, name='max_pool3')(X)
+    X = Activation('relu')(X)
+
+    X = Dropout(.2)(X)
+    X = Conv1D(32, 4, strides=1, name = 'conv5')(X)
+    X = MaxPooling1D(2, name='max_pool4')(X)
+    X = Activation('relu')(X)
+
+    #X = Dropout(.2)(X)
+    # FLATTEN X (means convert it to a vector) + FULLYCONNECTED
+    X = Flatten()(X)
+    #X = Dense(8, activation='tanh', name='fc2')(X)
+
+    X = Dropout(.2)(X)
+    X = Dense(3, activation='softmax', name='fc')(X)
+
+    # Create model. This creates your Keras model instance, you'll use this instance to train/test the model.
+    model = Model(inputs = X_input, outputs = X, name='derp')
+    return model
+
+def run(model):
+    clf = model((*(xTrain.shape[1:]),1))
+    clf.compile('adam','categorical_crossentropy',['accuracy'])
+
+    hist = clf.fit(xTrain.reshape(*xTrain.shape,1), yTrain, 16, 100, validation_data=(xVal.reshape(*xVal.shape,1),yVal))
+    return clf, hist.history
+
+clf, hist = run(cnnFullOver)
 plt.plot(hist['acc'])
 plt.plot(hist['val_acc'])
 plt.show()
