@@ -177,6 +177,48 @@ def cnnOverlap(input_shape):
     model = Model(inputs = X_input, outputs = X, name='derp')
     return model
 
+def cnnOverlapNoDrop(input_shape):
+    """
+    removed all dropouts -> garbage model
+    
+    Arguments:
+    input_shape -- shape of the images of the dataset
+
+    Returns:
+    model -- a Model() instance in Keras
+    """
+    # Define the input placeholder as a tensor with shape input_shape. Think of this as your input image!
+    X_input = Input(input_shape)
+
+    # CONV -> BN -> RELU Block applied to X
+    X = Conv1D(16, 8, strides=4, name = 'conv0')(X_input)
+    X = BatchNormalization(name = 'bn0')(X)
+    X = MaxPooling1D(2, name='max_pool')(X)
+    X = Activation('relu')(X)
+
+    X = Conv1D(32, 4, strides=2, name = 'conv1')(X)
+    X = BatchNormalization(name = 'bn1')(X)
+    X = MaxPooling1D(2, name='max_pool1')(X)
+    X = Activation('relu')(X)
+
+    X = Conv1D(64, 4, strides=2, name = 'conv2')(X)
+    X = BatchNormalization(name = 'bn2')(X)
+    X = MaxPooling1D(2, name='max_pool2')(X)
+    X = Activation('relu')(X)
+
+    X = Conv1D(64, 4, strides=2, name = 'conv3')(X)
+    X = BatchNormalization(name = 'bn3')(X)
+    X = MaxPooling1D(2, name='max_pool3')(X)
+    X = Activation('relu')(X)
+
+    # FLATTEN X (means convert it to a vector) + FULLYCONNECTED
+    X = Flatten()(X)
+    X = Dense(3, activation='softmax', name='fc')(X)
+
+    # Create model. This creates your Keras model instance, you'll use this instance to train/test the model.
+    model = Model(inputs = X_input, outputs = X, name='derp')
+    return model
+
 def cnnOverlapOneDrop(input_shape):
     """
     same, but with dropouts pushed to end
@@ -356,7 +398,7 @@ def cnnFullOver(input_shape):
     X = MaxPooling1D(2, name='max_pool3')(X)
     X = Activation('relu')(X)
 
-    X = Dropout(.2)(X)
+    X = Dropout(.4)(X)
     X = Conv1D(32, 4, strides=1, name = 'conv5')(X)
     X = MaxPooling1D(2, name='max_pool4')(X)
     X = Activation('relu')(X)
@@ -366,7 +408,7 @@ def cnnFullOver(input_shape):
     X = Flatten()(X)
     #X = Dense(8, activation='tanh', name='fc2')(X)
 
-    X = Dropout(.2)(X)
+    X = Dropout(.4)(X)
     X = Dense(3, activation='softmax', name='fc')(X)
 
     # Create model. This creates your Keras model instance, you'll use this instance to train/test the model.
@@ -390,6 +432,14 @@ score_func(yTrain, preds)
 
 preds = clf.predict(xVal.reshape(*xVal.shape,1))
 score_func(yVal, preds)
+
+####
+#try normalizing input
+####
+avg = xTrain.mean()
+std = xTrain.std()
+xTrain = (xTrain-avg)/std
+xVal = (xVal-avg)/std
 
 # serialize model to JSON
 model_json = clf.to_json()
