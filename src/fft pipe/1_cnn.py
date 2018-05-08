@@ -23,8 +23,8 @@ def score_func(y, y_pred):
     return roc_auc_score(y[:,0], y_pred)
 
 def score_func2(y, y_pred):
-    y=y[:,0]
-    y_pred=y_pred[:,0]
+    y=(y[:,0]==1)|(y[:,2]==1)
+    y_pred=y_pred[:,0]+y_pred[:,2]
     return roc_auc_score(y, y_pred)
 
 def confMat(y, y_pred):
@@ -34,12 +34,12 @@ def confMat(y, y_pred):
     y_pred=np.argmax(y_pred,axis=1)
     return confusion_matrix(y, y_pred)
 
-dirName = 'training2017/'
-xTrain = np.load(dirName + 'train.npy')
+dirName = 'data/training2017/'
+xTrain = np.load(dirName + 'ffttrain.npy')
 yTrain = np.load(dirName + 'trainlabel.npy')
 yTrain=yTrain[:,1]
 yTrain=to_categorical(labEnc.fit_transform(yTrain))
-xVal = np.load(dirName + 'valid.npy')
+xVal = np.load(dirName + 'fftvalid.npy')
 yVal = np.load(dirName + 'validlabel.npy')
 yVal=yVal[:,1]
 yVal=to_categorical(labEnc.fit_transform(yVal))
@@ -64,30 +64,29 @@ def cnnOverlap(input_shape):
     X_input = Input(input_shape)
 
     # CONV -> BN -> RELU Block applied to X
-    X = Conv1D(16, 8, strides=4, name = 'conv0')(X_input)
+    X = Conv1D(32, 1, strides=1, name = 'conv0')(X_input)
     X = BatchNormalization(name = 'bn0')(X)
-    X = MaxPooling1D(2, name='max_pool')(X)
     X = Activation('relu')(X)
 
     X = Dropout(.1)(X)
-    X = Conv1D(32, 4, strides=2, name = 'conv1')(X)
+    X = Conv1D(32, 2, strides=1, name = 'conv1')(X)
     X = BatchNormalization(name = 'bn1')(X)
     X = MaxPooling1D(2, name='max_pool1')(X)
     X = Activation('relu')(X)
 
     X = Dropout(.2)(X)
-    X = Conv1D(64, 4, strides=2, name = 'conv2')(X)
+    X = Conv1D(64, 2, strides=1, name = 'conv2')(X)
     X = BatchNormalization(name = 'bn2')(X)
-    X = MaxPooling1D(2, name='max_pool2')(X)
+    #X = MaxPooling1D(2, name='max_pool2')(X)
     X = Activation('relu')(X)
 
-    X = Dropout(.3)(X)
-    X = Conv1D(64, 4, strides=2, name = 'conv3')(X)
+    X = Dropout(.4)(X)
+    X = Conv1D(64, 4, strides=1, name = 'conv3')(X)
     X = BatchNormalization(name = 'bn3')(X)
-    X = MaxPooling1D(2, name='max_pool3')(X)
+    #X = MaxPooling1D(2, name='max_pool3')(X)
     X = Activation('relu')(X)
 
-    X = Dropout(.15)(X)
+    X = Dropout(.2)(X)
     # FLATTEN X (means convert it to a vector) + FULLYCONNECTED
     X = Flatten()(X)
     X = Dense(3, activation='softmax', name='fc')(X)
@@ -98,15 +97,15 @@ def cnnOverlap(input_shape):
 
 
 def run(model, epochs=100):
-    clf = model((*(xTrain.shape[1:]),1))
+    clf = model(xTrain.shape[1:])
     clf.compile('adam','categorical_crossentropy',['accuracy'])
 
-    hist = clf.fit(xTrain.reshape(*xTrain.shape,1), yTrain, 16, epochs, validation_data=(xVal.reshape(*xVal.shape,1),yVal))
+    hist = clf.fit(xTrain, yTrain, 16, epochs, validation_data=(xVal,yVal))
     return clf, hist.history
 
-clf, hist = run(cnnOverlap, 150)
+clf, hist = run(cnnOverlap, 200)
 
-#80 is about best?
+# is about best?
 
 preds = clf.predict(xVal.reshape(*xVal.shape,1))
 score_func(yVal, preds)
@@ -116,29 +115,28 @@ score_func2(yVal, preds)
 #final train
 #####
 
-dirName = 'training2017/'
-xTrain = np.load(dirName + 'train.npy')
-yTrain = np.load(dirName + 'trainlabel.npy')
-yTrain=yTrain[:,1]
-yTrain=to_categorical(labEnc.fit_transform(yTrain))
-xVal = np.load(dirName + 'valid.npy')
-yVal = np.load(dirName + 'validlabel.npy')
-yVal=yVal[:,1]
-yVal=to_categorical(labEnc.fit_transform(yVal))
-xTrain=np.vstack([xTrain,xVal])
-yTrain=np.vstack([yTrain,yVal])
+# dirName = 'training2017/'
+# xTrain = np.load(dirName + 'train.npy')
+# yTrain = np.load(dirName + 'trainlabel.npy')
+# yTrain=yTrain[:,1]
+# yTrain=to_categorical(labEnc.fit_transform(yTrain))
+# xVal = np.load(dirName + 'valid.npy')
+# yVal = np.load(dirName + 'validlabel.npy')
+# yVal=yVal[:,1]
+# yVal=to_categorical(labEnc.fit_transform(yVal))
+# xTrain=np.vstack([xTrain,xVal])
+# yTrain=np.vstack([yTrain,yVal])
 
-xVal = np.load(dirName + 'test.npy')
-yVal = np.load(dirName + 'testlabel.npy')
-yVal=yVal[:,1]
-yVal=to_categorical(labEnc.fit_transform(yVal))
+# xVal = np.load(dirName + 'test.npy')
+# yVal = np.load(dirName + 'testlabel.npy')
+# yVal=yVal[:,1]
+# yVal=to_categorical(labEnc.fit_transform(yVal))
 
-# # Normalize
-avg = xTrain.mean()
-std = xTrain.std()
-xTrain = (xTrain-avg)/std
-xVal = (xVal-avg)/std
+# # # Normalize
+# avg = xTrain.mean()
+# std = xTrain.std()
+# xTrain = (xTrain-avg)/std
+# xVal = (xVal-avg)/std
 
-clf, hist = run(cnnOverlap, 80)
+# clf, hist = run(cnnOverlap, 80)
 
-clf.save('models/cnnFinal')

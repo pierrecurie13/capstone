@@ -300,6 +300,7 @@ def cnnOverlapDeeper(input_shape):
     X = Conv1D(64, 4, strides=2, name = 'conv4')(X)
     X = MaxPooling1D(2, name='max_pool3')(X)
     X = Activation(K.square)(X)
+    #when loading, need to include custom_objects={'square':square}
 
     #X = Dropout(.2)(X)
     # FLATTEN X (means convert it to a vector) + FULLYCONNECTED
@@ -441,21 +442,12 @@ std = xTrain.std()
 xTrain = (xTrain-avg)/std
 xVal = (xVal-avg)/std
 
-# serialize model to JSON
-model_json = clf.to_json()
-with open("data/models/modelOverlap.json", "w") as f:
-    f.write(model_json)
-# serialize weights to HDF5
-clf.save_weights("data/models/modelOverlap.h5")
-
-
 # load json and create model
-with open('data/models/modelOverlap.json', 'r') as f:
+with open('data/models/model.json', 'r') as f:
     loaded_model_json = f.read()
 loaded_model = model_from_json(loaded_model_json)
 # load weights into new model
-loaded_model.load_weights("model.h5")
-
+loaded_model.load_weights("data/models/model.h5")
 
 clf.summary()
 plot_model(clf)#, to_file='HappyModel.png')

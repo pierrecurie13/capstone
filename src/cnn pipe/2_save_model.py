@@ -23,8 +23,8 @@ def score_func(y, y_pred):
     return roc_auc_score(y[:,0], y_pred)
 
 def score_func2(y, y_pred):
-    y=(y[:,0]==1)|(y[:,2]==1)
-    y_pred=y_pred[:,0]+y_pred[:,2]
+    y=y[:,0]
+    y_pred=y_pred[:,0]
     return roc_auc_score(y, y_pred)
 
 def confMat(y, y_pred):
@@ -36,15 +36,11 @@ def confMat(y, y_pred):
 
 dirName = 'training2017/'
 xTrain = np.load(dirName + 'train.npy')
-xTrain = np.vstack([xTrain, np.load(dirName + 'train2.npy')])
 yTrain = np.load(dirName + 'trainlabel.npy')
-yTrain = np.vstack([yTrain, np.load(dirName + 'trainlabel2.npy')])
 yTrain=yTrain[:,1]
 yTrain=to_categorical(labEnc.fit_transform(yTrain))
 xVal = np.load(dirName + 'valid.npy')
-xVal = np.vstack([xVal, np.load(dirName + 'valid2.npy')])
 yVal = np.load(dirName + 'validlabel.npy')
-yVal = np.vstack([yVal, np.load(dirName + 'validlabel2.npy')])
 yVal=yVal[:,1]
 yVal=to_categorical(labEnc.fit_transform(yVal))
 
@@ -73,28 +69,28 @@ def cnnOverlap(input_shape):
     X = MaxPooling1D(2, name='max_pool')(X)
     X = Activation('relu')(X)
 
-    X = Dropout(.05)(X)
+    X = Dropout(.1)(X)
     X = Conv1D(32, 4, strides=2, name = 'conv1')(X)
     X = BatchNormalization(name = 'bn1')(X)
     X = MaxPooling1D(2, name='max_pool1')(X)
     X = Activation('relu')(X)
 
-    X = Dropout(.13)(X)
+    X = Dropout(.2)(X)
     X = Conv1D(64, 4, strides=2, name = 'conv2')(X)
     X = BatchNormalization(name = 'bn2')(X)
     X = MaxPooling1D(2, name='max_pool2')(X)
     X = Activation('relu')(X)
 
-    X = Dropout(.18)(X)
+    X = Dropout(.3)(X)
     X = Conv1D(64, 4, strides=2, name = 'conv3')(X)
     X = BatchNormalization(name = 'bn3')(X)
     X = MaxPooling1D(2, name='max_pool3')(X)
     X = Activation('relu')(X)
 
-    X = Dropout(.08)(X)
+    X = Dropout(.15)(X)
     # FLATTEN X (means convert it to a vector) + FULLYCONNECTED
     X = Flatten()(X)
-    X = Dense(4, activation='softmax', name='fc')(X)
+    X = Dense(3, activation='softmax', name='fc')(X)
 
     # Create model. This creates your Keras model instance, you'll use this instance to train/test the model.
     model = Model(inputs = X_input, outputs = X, name='derp')
@@ -108,9 +104,9 @@ def run(model, epochs=100):
     hist = clf.fit(xTrain.reshape(*xTrain.shape,1), yTrain, 16, epochs, validation_data=(xVal.reshape(*xVal.shape,1),yVal))
     return clf, hist.history
 
-clf, hist = run(cnnOverlap, 100)
+clf, hist = run(cnnOverlap, 150)
 
-# is about best?
+#80 is about best?
 
 preds = clf.predict(xVal.reshape(*xVal.shape,1))
 score_func(yVal, preds)
@@ -120,28 +116,32 @@ score_func2(yVal, preds)
 #final train
 #####
 
-# dirName = 'training2017/'
-# xTrain = np.load(dirName + 'train.npy')
-# yTrain = np.load(dirName + 'trainlabel.npy')
-# yTrain=yTrain[:,1]
-# yTrain=to_categorical(labEnc.fit_transform(yTrain))
-# xVal = np.load(dirName + 'valid.npy')
-# yVal = np.load(dirName + 'validlabel.npy')
-# yVal=yVal[:,1]
-# yVal=to_categorical(labEnc.fit_transform(yVal))
-# xTrain=np.vstack([xTrain,xVal])
-# yTrain=np.vstack([yTrain,yVal])
+dirName = 'training2017/'
+xTrain = np.load(dirName + 'train.npy')
+yTrain = np.load(dirName + 'trainlabel.npy')
+yTrain=yTrain[:,1]
+yTrain=to_categorical(labEnc.fit_transform(yTrain))
+xVal = np.load(dirName + 'valid.npy')
+yVal = np.load(dirName + 'validlabel.npy')
+yVal=yVal[:,1]
+yVal=to_categorical(labEnc.fit_transform(yVal))
+xTrain=np.vstack([xTrain,xVal])
+yTrain=np.vstack([yTrain,yVal])
 
-# xVal = np.load(dirName + 'test.npy')
-# yVal = np.load(dirName + 'testlabel.npy')
-# yVal=yVal[:,1]
-# yVal=to_categorical(labEnc.fit_transform(yVal))
+xVal = np.load(dirName + 'test.npy')
+yVal = np.load(dirName + 'testlabel.npy')
+yVal=yVal[:,1]
+yVal=to_categorical(labEnc.fit_transform(yVal))
 
-# # # Normalize
-# avg = xTrain.mean()
-# std = xTrain.std()
-# xTrain = (xTrain-avg)/std
-# xVal = (xVal-avg)/std
+# # Normalize
+avg = xTrain.mean()
+std = xTrain.std()
+xTrain = (xTrain-avg)/std
+xVal = (xVal-avg)/std
 
-# clf, hist = run(cnnOverlap, 80)
+norm = np.array([avg, std])
+np.save('models/normParamsSemifinal', norm)
 
+clf, hist = run(cnnOverlap, 80)
+
+clf.save('models/cnnFinal')
