@@ -73,25 +73,25 @@ def cnnOverlap(input_shape):
     X = MaxPooling1D(2, name='max_pool')(X)
     X = Activation('relu')(X)
 
-    X = Dropout(.05)(X)
+    X = Dropout(.1)(X)
     X = Conv1D(32, 4, strides=2, name = 'conv1')(X)
     X = BatchNormalization(name = 'bn1')(X)
     X = MaxPooling1D(2, name='max_pool1')(X)
     X = Activation('relu')(X)
 
-    X = Dropout(.13)(X)
+    X = Dropout(.15)(X)
     X = Conv1D(64, 4, strides=2, name = 'conv2')(X)
     X = BatchNormalization(name = 'bn2')(X)
     X = MaxPooling1D(2, name='max_pool2')(X)
     X = Activation('relu')(X)
 
-    X = Dropout(.18)(X)
+    X = Dropout(.2)(X)
     X = Conv1D(64, 4, strides=2, name = 'conv3')(X)
     X = BatchNormalization(name = 'bn3')(X)
     X = MaxPooling1D(2, name='max_pool3')(X)
     X = Activation('relu')(X)
 
-    X = Dropout(.08)(X)
+    X = Dropout(.1)(X)
     # FLATTEN X (means convert it to a vector) + FULLYCONNECTED
     X = Flatten()(X)
     X = Dense(4, activation='softmax', name='fc')(X)
