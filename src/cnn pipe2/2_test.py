@@ -27,6 +27,15 @@ def score_func2(y, y_pred):
     y_pred=y_pred[:,0]+y_pred[:,2]
     return roc_auc_score(y, y_pred)
 
+def score_func3(y, y_pred):
+    mask = (y[:,2]==0)&(y[:,3]==0)
+    y=y[mask]
+    y_pred=y_pred[mask]
+    y_pred=y_pred[:,0]/(y_pred[:,0]+y_pred[:,1])
+    mask = np.isnan(y_pred)
+    y_pred[mask]=.5
+    return roc_auc_score(y[:,0], y_pred)
+
 def confMat(y, y_pred):
     #each row corresponds to a true value
     #each col corresponds to a prediction
@@ -120,28 +129,33 @@ score_func2(yVal, preds)
 #final train
 #####
 
-# dirName = 'training2017/'
-# xTrain = np.load(dirName + 'train.npy')
-# yTrain = np.load(dirName + 'trainlabel.npy')
-# yTrain=yTrain[:,1]
-# yTrain=to_categorical(labEnc.fit_transform(yTrain))
-# xVal = np.load(dirName + 'valid.npy')
-# yVal = np.load(dirName + 'validlabel.npy')
-# yVal=yVal[:,1]
-# yVal=to_categorical(labEnc.fit_transform(yVal))
-# xTrain=np.vstack([xTrain,xVal])
-# yTrain=np.vstack([yTrain,yVal])
+dirName = 'training2017/'
+xTrain = np.load(dirName + 'train.npy')
+xTrain = np.vstack([xTrain, np.load(dirName + 'train2.npy')])
+yTrain = np.load(dirName + 'trainlabel.npy')
+yTrain = np.vstack([yTrain, np.load(dirName + 'trainlabel2.npy')])
+xVal = np.load(dirName + 'valid.npy')
+xVal = np.vstack([xVal, np.load(dirName + 'valid2.npy')])
+yVal = np.load(dirName + 'validlabel.npy')
+yVal = np.vstack([yVal, np.load(dirName + 'validlabel2.npy')])
 
-# xVal = np.load(dirName + 'test.npy')
-# yVal = np.load(dirName + 'testlabel.npy')
-# yVal=yVal[:,1]
-# yVal=to_categorical(labEnc.fit_transform(yVal))
+xTrain=np.vstack([xTrain,xVal])
+yTrain=np.vstack([yTrain,yVal])
+yTrain=yTrain[:,1]
+yTrain=to_categorical(labEnc.fit_transform(yTrain))
+
+xVal = np.load(dirName + 'test.npy')
+xVal = np.vstack([xVal, np.load(dirName + 'test2.npy')])
+yVal = np.load(dirName + 'testlabel.npy')
+yVal = np.vstack([yVal, np.load(dirName + 'testlabel2.npy')])
+yVal=yVal[:,1]
+yVal=to_categorical(labEnc.fit_transform(yVal))
 
 # # # Normalize
-# avg = xTrain.mean()
-# std = xTrain.std()
-# xTrain = (xTrain-avg)/std
-# xVal = (xVal-avg)/std
+avg = xTrain.mean()
+std = xTrain.std()
+xTrain = (xTrain-avg)/std
+xVal = (xVal-avg)/std
 
-# clf, hist = run(cnnOverlap, 80)
+clf, hist = run(cnnOverlap, 100)
 
